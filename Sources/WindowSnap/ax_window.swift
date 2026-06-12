@@ -7,7 +7,9 @@ import ApplicationServices
 /// カーソル座標・ウィンドウ位置・set する矩形まで Cocoa を経由せずに扱える（変換不要＝事故が少ない）。
 enum AXWindow {
     /// タイトルバー帯の高さ(pt)。掴み判定（上端からこの帯にカーソルがあれば「タイトルバー掴み」）。
-    static let TITLEBAR_HEIGHT: CGFloat = 32
+    /// 標準タイトルバー(28-32pt)＋タブバー/ツールバーを持つアプリや半分オフスクリーンの
+    /// ウィンドウで実測したところ、最大 41pt の超過が見られたため 44pt に設定する。
+    static let TITLEBAR_HEIGHT: CGFloat = 44
 
     private static let systemWide = AXUIElementCreateSystemWide()
 
