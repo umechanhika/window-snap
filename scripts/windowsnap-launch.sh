@@ -12,7 +12,7 @@
 #
 # 標準出力/標準エラーは launchd により StandardErrorPath（stderr.log）へ流れる。
 
-PROJECT_DIR="${HOME}/dotfiles/window-snap"
+PROJECT_DIR="${HOME}/window-snap"
 APP="${PROJECT_DIR}/.build/WindowSnap.app"
 BIN="${APP}/Contents/MacOS/WindowSnap"
 

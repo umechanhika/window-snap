@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${HOME}/dotfiles/window-snap"
+PROJECT_DIR="${HOME}/window-snap"
 SWIFT="/usr/bin/swift"
 BIN="${PROJECT_DIR}/.build/release/WindowSnap"
 APP="${PROJECT_DIR}/.build/WindowSnap.app"
