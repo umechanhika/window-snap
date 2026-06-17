@@ -52,7 +52,9 @@ jobs:
             -instr-profile="${PROFDATA}" \
             Sources/WindowSnapCore/)
           echo "$REPORT"
-          COVERAGE=$(echo "$REPORT" | awk '/^TOTAL/{gsub(/%/,"",$NF); print $NF}')
+          # TOTAL 行のフォーマット: ... Lines Missed_Lines Lines_Cover% Branches Missed_Branches Branches_Cover
+          # ブランチ未計測時は Branches_Cover が "-" になるため $NF="- "。Lines_Cover は $(NF-3)。
+          COVERAGE=$(echo "$REPORT" | awk '/^TOTAL/{v=$(NF-3); gsub(/%/,"",v); print v}')
           echo "WindowSnapCore line coverage: ${COVERAGE}%"
           if awk "BEGIN{exit !(${COVERAGE}+0 < 80)}"; then
             echo "::error::WindowSnapCore coverage ${COVERAGE}% is below 80%"
