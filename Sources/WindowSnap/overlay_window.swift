@@ -1,4 +1,5 @@
 import Cocoa
+import WindowSnapCore
 
 /// スナップ先を予告表示する半透明オーバーレイ（BTT の白いハイライト相当）。
 ///
@@ -8,7 +9,7 @@ import Cocoa
 ///
 /// 注意: NSWindow は Cocoa 座標(左下原点)。受け取る矩形は CG global(左上原点)なので、
 /// Geometry.cgGlobalRectToCocoa で一度だけ変換してから配置する。
-final class SnapOverlay {
+final class SnapOverlay: SnapPreviewing {
     private var window: NSWindow?
     private var currentRectCG: CGRect?   // 表示中の矩形(CG global)。差分更新の基準。
 
@@ -16,7 +17,8 @@ final class SnapOverlay {
     func show(rectCGGlobal rect: CGRect) {
         if currentRectCG == rect { return }
         currentRectCG = rect
-        let cocoaRect = Geometry.cgGlobalRectToCocoa(rect)
+        let ph = NSScreen.screens.first?.frame.height ?? 0
+        let cocoaRect = Geometry.cgGlobalRectToCocoa(rect, primaryHeight: ph)
         let win = window ?? makeWindow()
         win.setFrame(cocoaRect, display: false)
         win.orderFrontRegardless()   // .accessory アプリでも前面に出す
@@ -39,11 +41,8 @@ final class SnapOverlay {
         win.level = .floating
         // .transient: Mission Control / App Exposé が起動すると OS が自動で隠す一時 UI 扱い。
         // これにより上端ドラッグで Mission Control が出てもプレビューが前面に残らない。
-        // （以前の .canJoinAllSpaces は HUD のように最前面に残り続け、残留の原因だった）
         win.collectionBehavior = [.transient, .ignoresCycle]
         // スクリーンショット／画面収録にプレビューが写り込まないようにする。
-        // ※ Mission Control のスペース・サムネイルはウィンドウサーバー側の合成のため
-        //   sharingType を尊重せず、上端ドラッグ時はサムネイルが薄く白むことがある（OS の制約）。
         win.sharingType = .none
         win.hasShadow = false
 

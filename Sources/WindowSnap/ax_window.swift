@@ -1,5 +1,6 @@
 import Cocoa
 import ApplicationServices
+import WindowSnapCore
 
 /// Accessibility API のラッパ。
 ///
@@ -105,5 +106,29 @@ enum AXWindow {
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
               let v = value, CFGetTypeID(v) == AXValueGetTypeID() else { return nil }
         return (v as! AXValue)
+    }
+}
+
+// MARK: - WindowControlling 適合
+
+/// AXWindow をラップし WindowControlling プロトコルを実装する。
+/// テスト時は FakeWindowController に差し替える。
+struct SystemWindowController: WindowControlling {
+    typealias Window = AXUIElement
+
+    func windowUnderCursor(at globalPoint: CGPoint) -> AXUIElement? {
+        AXWindow.windowUnderCursor(at: globalPoint)
+    }
+
+    func frontmostFocusedWindow() -> AXUIElement? {
+        AXWindow.frontmostFocusedWindow()
+    }
+
+    func isTitlebarHit(_ window: AXUIElement, globalPoint: CGPoint) -> Bool {
+        AXWindow.isTitlebarHit(window, globalPoint: globalPoint)
+    }
+
+    func setFrame(_ window: AXUIElement, position: CGPoint, size: CGSize) {
+        AXWindow.setFrame(window, position: position, size: size)
     }
 }
