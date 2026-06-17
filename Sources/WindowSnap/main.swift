@@ -1,20 +1,41 @@
 import Cocoa
 import ApplicationServices
+import WindowSnapCore
 
 /// WindowSnap 本体。
 /// マウスでウィンドウを画面端へドラッグして離すと、その端に応じてウィンドウをスナップする常駐アプリ。
 /// Dock 非表示（.accessory / LSUIElement）。メニューバーに常駐し、launchd で常駐起動する。
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private typealias AppDragger = WindowDragger<SystemWindowController, SystemScreenProvider>
+
     private var eventTap: EventTap?
-    private let dragger = WindowDragger()
+    private let overlay = SnapOverlay()
+    private lazy var dragger: AppDragger = AppDragger(
+        windows: SystemWindowController(),
+        screens: SystemScreenProvider(),
+        preview: overlay
+    )
     private var statusItem: StatusItem?
     private var permissionTimer: Timer?
     private var sigtermSource: DispatchSourceSignal?
+    private var spaceChangeObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = StatusItem()
         installSignalHandler()
+        installSpaceChangeObserver()
         ensureAccessibilityThenStart()
+    }
+
+    /// スペース切替（Mission Control で別スペースへドロップ等）でプレビューを残さない。
+    /// NSWorkspace への依存を Core から排除するため AppDelegate で監視する。
+    private func installSpaceChangeObserver() {
+        spaceChangeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.dragger.cancelDrag()
+        }
     }
 
     /// アクセシビリティ権限を確認し、付与済みなら EventTap を開始する。
