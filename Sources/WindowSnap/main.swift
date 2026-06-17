@@ -21,10 +21,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var spaceChangeObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem = StatusItem()
+        let si = StatusItem()
+        si.onEnabledChanged = { [weak self] enabled in
+            enabled ? self?.ensureAccessibilityThenStart() : self?.stopTapping()
+        }
+        statusItem = si
         installSignalHandler()
         installSpaceChangeObserver()
-        ensureAccessibilityThenStart()
+        if AppSettings.shared.isEnabled {
+            ensureAccessibilityThenStart()
+        }
     }
 
     /// スペース切替（Mission Control で別スペースへドロップ等）でプレビューを残さない。
@@ -57,6 +63,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func isAccessibilityTrusted(prompt: Bool) -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
         return AXIsProcessTrustedWithOptions(options)
+    }
+
+    /// EventTap を停止して破棄する（有効/無効トグルで無効にされたとき）。
+    private func stopTapping() {
+        permissionTimer?.invalidate()
+        permissionTimer = nil
+        eventTap?.stop()
+        eventTap = nil
+        NSLog("WindowSnap: 監視を停止しました。")
     }
 
     /// EventTap を生成して監視を開始する。成功したら true。
