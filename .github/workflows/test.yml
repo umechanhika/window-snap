@@ -41,8 +41,11 @@ jobs:
       # WindowSnapCore の行カバレッジが 80% 未満なら fail（executable グルー層は対象外）
       - name: Check coverage threshold (WindowSnapCore >= 80%)
         run: |
-          BINARY=$(find .build/debug -name 'WindowSnapPackageTests' ! -path '*.dSYM*' -type f | head -1)
-          PROFDATA=$(find .build/debug/codecov -name '*.profdata' | head -1)
+          # macOS では .build/debug が arch 別ディレクトリへの symlink になるため -L で辿る
+          BINARY=$(find -L .build -path '*/WindowSnapPackageTests.xctest/Contents/MacOS/WindowSnapPackageTests' -type f 2>/dev/null | head -1)
+          # xctest バンドルが無い場合（Linux / 旧ツールチェーン）のフォールバック
+          [ -z "$BINARY" ] && BINARY=$(find -L .build -name 'WindowSnapPackageTests' ! -path '*.dSYM*' ! -path '*.xctest*' -type f 2>/dev/null | head -1)
+          PROFDATA=$(find -L .build -name '*.profdata' 2>/dev/null | head -1)
           echo "Binary:   ${BINARY}"
           echo "Profdata: ${PROFDATA}"
           REPORT=$(xcrun llvm-cov report "${BINARY}" \
