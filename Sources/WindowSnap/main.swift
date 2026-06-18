@@ -21,10 +21,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var spaceChangeObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem = StatusItem()
+        let si = StatusItem()
+        si.onEnabledChanged = { [weak self] enabled in
+            if !enabled {
+                // ドラッグ中のプレビューを片付ける。EventTap は動かしたまま isEnabled ガードで止める。
+                self?.dragger.cancelDrag()
+            } else {
+                self?.ensureAccessibilityThenStart()
+            }
+        }
+        statusItem = si
         installSignalHandler()
         installSpaceChangeObserver()
-        ensureAccessibilityThenStart()
+        if AppSettings.shared.isEnabled {
+            ensureAccessibilityThenStart()
+        }
     }
 
     /// スペース切替（Mission Control で別スペースへドロップ等）でプレビューを残さない。
@@ -65,6 +76,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func startTapping() -> Bool {
         if eventTap != nil { return true }
         guard let tap = EventTap(onEvent: { [weak self] type, event in
+            // isEnabled が false のときはイベントを読み飛ばす（tap は動かしたまま）。
+            // tapDisabledBy* は EventTap 内部で tap 再有効化のため素通りさせる必要があるので除外。
+            if !AppSettings.shared.isEnabled,
+               type != .tapDisabledByTimeout, type != .tapDisabledByUserInput { return }
             self?.dragger.handle(type, event)
         }) else {
             return false
