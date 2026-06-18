@@ -65,7 +65,7 @@ final class StatusItem: NSObject {
 
     @objc private func toggleEnabled() {
         let newValue = !AppSettings.shared.isEnabled
-        AppSettings.shared.isEnabled = newValue
+        AppSettings.shared.setEnabled(newValue)
         enabledMenuItem?.state = newValue ? .on : .off
         onEnabledChanged?(newValue)
     }

@@ -23,7 +23,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let si = StatusItem()
         si.onEnabledChanged = { [weak self] enabled in
-            enabled ? self?.ensureAccessibilityThenStart() : self?.stopTapping()
+            if !enabled {
+                // ドラッグ中のプレビューを片付ける。EventTap は動かしたまま isEnabled ガードで止める。
+                self?.dragger.cancelDrag()
+            } else {
+                self?.ensureAccessibilityThenStart()
+            }
         }
         statusItem = si
         installSignalHandler()
@@ -65,21 +70,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return AXIsProcessTrustedWithOptions(options)
     }
 
-    /// EventTap を停止して破棄する（有効/無効トグルで無効にされたとき）。
-    private func stopTapping() {
-        permissionTimer?.invalidate()
-        permissionTimer = nil
-        eventTap?.stop()
-        eventTap = nil
-        NSLog("WindowSnap: 監視を停止しました。")
-    }
-
     /// EventTap を生成して監視を開始する。成功したら true。
     /// 権限はあるが何らかの理由でタップを作れない場合は false（呼び出し側が再試行する）。
     @discardableResult
     private func startTapping() -> Bool {
         if eventTap != nil { return true }
         guard let tap = EventTap(onEvent: { [weak self] type, event in
+            // isEnabled が false のときはイベントを読み飛ばす（tap は動かしたまま）。
+            // tapDisabledBy* は EventTap 内部で tap 再有効化のため素通りさせる必要があるので除外。
+            if !AppSettings.shared.isEnabled,
+               type != .tapDisabledByTimeout, type != .tapDisabledByUserInput { return }
             self?.dragger.handle(type, event)
         }) else {
             return false
